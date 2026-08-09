@@ -1,0 +1,10 @@
+project:
+  name: repo-assistant
+services:
+  - hostname: db
+    type: postgresql@16
+  - hostname: app
+    type: python@3.12
+    ports:
+      - port: 8000
+        httpSupport: true
