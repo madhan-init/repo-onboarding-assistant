@@ -6,3 +6,4 @@ gitpython
 anthropic
 python-dotenv
 voyageai
+requests
