@@ -15,10 +15,16 @@ zerops:
         - python3 -m pip install --break-system-packages --upgrade pip
         - python3 -m pip install --break-system-packages -r requirements.txt
       initCommands:
+        - python3 db/setup_extension.py # Sets up pgvector using superuser
         - python3 db/client.py # Initializes the database on deploy
       start: python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8000
       envVariables:
         DATABASE_URL: ${db_connectionString}
+        DB_SUPERUSER: ${db_superUser}
+        DB_SUPERUSER_PASSWORD: ${db_superUserPassword}
+        DB_HOSTNAME: ${db_hostname}
+        DB_PORT: ${db_port}
+        DB_NAME: ${db_dbName}
 
   - setup: frontend
     build:
