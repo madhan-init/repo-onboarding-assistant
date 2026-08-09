@@ -10,10 +10,8 @@ zerops:
         - port: 8000
           httpSupport: true
       prepareCommands:
-        - which git || true
-        - git --version || true
-        - python3 -m pip install --upgrade pip
-        - python3 -m pip install -r requirements.txt
+        - python3 -m pip install --break-system-packages --upgrade pip
+        - python3 -m pip install --break-system-packages -r requirements.txt
       initCommands:
         - python3 db/client.py # Initializes the database on deploy
       start: python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8000
@@ -31,10 +29,8 @@ zerops:
         - port: 8000
           httpSupport: true
       prepareCommands:
-        - which git || true
-        - git --version || true
-        - python3 -m pip install --upgrade pip
-        - python3 -m pip install -r requirements.txt
+        - python3 -m pip install --break-system-packages --upgrade pip
+        - python3 -m pip install --break-system-packages -r requirements.txt
       initCommands:
         - python3 db/client.py # Initializes the database on deploy
       start: python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8000
@@ -48,6 +44,7 @@ zerops:
         - static
     run:
       base: static
+
 
 
 
