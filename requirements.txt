@@ -5,4 +5,4 @@ pgvector
 gitpython
 anthropic
 python-dotenv
-google-genai
+voyageai

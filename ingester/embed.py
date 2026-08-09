@@ -2,34 +2,23 @@ import os
 import logging
 import time
 from typing import List, Dict
-from google import genai
+import voyageai
 
 logger = logging.getLogger(__name__)
 
 BATCH_SIZE = 100
 
 def get_embeddings(texts: List[str]) -> List[List[float]]:
-    client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY", os.environ.get("EMBEDDING_API_KEY")))
+    vo = voyageai.Client(api_key=os.environ.get("VOYAGE_API_KEY", os.environ.get("EMBEDDING_API_KEY")))
     
-    embeddings = []
-    for text in texts:
-        try:
-            response = client.models.embed_content(
-                model="gemini-embedding-2",
-                contents=text,
-                config={"output_dimensionality": 768}
-            )
-            embeddings.append(response.embeddings[0].values)
-        except Exception as e:
-            logger.warning(f"Embedding failed for a chunk, retrying once. Error: {e}")
-            time.sleep(2)
-            response = client.models.embed_content(
-                model="gemini-embedding-2",
-                contents=text,
-                config={"output_dimensionality": 768}
-            )
-            embeddings.append(response.embeddings[0].values)
-    return embeddings
+    try:
+        response = vo.embed(texts, model="voyage-3", input_type="document")
+        return response.embeddings
+    except Exception as e:
+        logger.warning(f"Embedding failed for a chunk, retrying once. Error: {e}")
+        time.sleep(2)
+        response = vo.embed(texts, model="voyage-3", input_type="document")
+        return response.embeddings
 
 def embed_and_store_chunks(repo_id: str, chunks: List[Dict], get_connection):
     # Process in batches

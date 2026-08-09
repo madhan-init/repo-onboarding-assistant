@@ -1,19 +1,15 @@
 import os
 import logging
 from typing import List, Dict
-from google import genai
+import voyageai
 from db.client import get_connection
 
 logger = logging.getLogger(__name__)
 
 def embed_query(query: str) -> List[float]:
-    client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY", os.environ.get("EMBEDDING_API_KEY")))
-    response = client.models.embed_content(
-        model="gemini-embedding-2",
-        contents=query,
-        config={"output_dimensionality": 768}
-    )
-    return response.embeddings[0].values
+    vo = voyageai.Client(api_key=os.environ.get("VOYAGE_API_KEY", os.environ.get("EMBEDDING_API_KEY")))
+    response = vo.embed([query], model="voyage-3", input_type="query")
+    return response.embeddings[0]
 
 def search_chunks(repo_id: str, query: str, top_k: int = 8) -> List[Dict]:
     query_embedding = embed_query(query)

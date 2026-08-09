@@ -17,7 +17,7 @@ CREATE TABLE chunks (
   end_line INT,
   chunk_type TEXT,   -- code|doc|config
   raw_text TEXT,
-  embedding VECTOR(768)
+  embedding VECTOR(1024)
 );
 
 CREATE INDEX ON chunks USING ivfflat (embedding vector_cosine_ops);
