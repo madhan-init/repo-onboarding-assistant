@@ -54,21 +54,18 @@ def ask_question(request: AskRequest):
     context = build_context_block(chunks)
     system_prompt = GROUNDING_SYSTEM_PROMPT.replace("{context}", context)
 
-    # 3. Call Gemini
+    # 3. Call Claude
     try:
-        from google import genai
-        client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=request.question,
-            config={
-                "system_instruction": system_prompt,
-                "max_output_tokens": 1000
-            }
+        client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=1000,
+            system=system_prompt,
+            messages=[{"role": "user", "content": request.question}]
         )
-        answer = response.text
+        answer = response.content[0].text
     except Exception as e:
-        logger.error(f"Failed to call Gemini: {e}")
+        logger.error(f"Failed to call Claude: {e}")
         raise HTTPException(status_code=500, detail="Failed to generate answer")
 
     # 4. Extract citations from the answer

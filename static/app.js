@@ -101,7 +101,7 @@ function getExt(filename) {
 function renderRepoData(data) {
     document.getElementById('emptyState').style.display = 'none';
     document.getElementById('loadingState').style.display = 'none';
-    document.getElementById('repoContent').style.display = 'block';
+    document.getElementById('repoContent').style.display = 'flex';
     
     let overview = data.overview_text || 'No overview available.';
     overview = overview.replace(/\*\*/g, '');
@@ -262,9 +262,11 @@ let isResizing = false;
 
 if (resizer && sidebar) {
     resizer.addEventListener('mousedown', (e) => {
+        e.preventDefault(); // Prevent text selection
         isResizing = true;
         resizer.classList.add('resizing');
         document.body.style.cursor = 'ew-resize';
+        document.body.style.userSelect = 'none';
     });
 
     document.addEventListener('mousemove', (e) => {
@@ -275,9 +277,6 @@ if (resizer && sidebar) {
         if (newWidth > window.innerWidth / 2) newWidth = window.innerWidth / 2;
         
         sidebar.style.width = `${newWidth}px`;
-        if (chatInputContainer) {
-            chatInputContainer.style.left = `${newWidth + 24 + 4}px`; // 24 padding + 4 resizer width
-        }
     });
 
     document.addEventListener('mouseup', () => {
@@ -285,6 +284,7 @@ if (resizer && sidebar) {
             isResizing = false;
             resizer.classList.remove('resizing');
             document.body.style.cursor = '';
+            document.body.style.userSelect = '';
         }
     });
 }

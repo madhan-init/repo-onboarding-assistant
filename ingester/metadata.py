@@ -2,7 +2,7 @@ import os
 import json
 import logging
 from typing import Dict
-from google import genai
+import anthropic
 
 logger = logging.getLogger(__name__)
 
@@ -41,19 +41,20 @@ def generate_metadata(target_dir: str) -> Dict:
     }
     
     try:
-        client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+        client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
         prompt = f"Analyze this repository metadata and write a short overview structured exactly like this: 1. A simple overview about the project. 2. The core modules/folders. 3. What type of project it contains (e.g. web app, library, API, etc). Do not use markdown formatting like asterisks or bold text. Metadata: {json.dumps(metadata)}"
         
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=500,
+            messages=[{"role": "user", "content": prompt}]
         )
-        metadata['overview'] = response.text.strip()
+        metadata['overview'] = response.content[0].text.strip()
     except Exception as e:
-        logger.warning(f"Failed to generate overview with Gemini: {e}")
+        logger.warning(f"Failed to generate overview with Claude: {e}")
         err_msg = str(e)
-        if "429" in err_msg or "Quota" in err_msg:
-            metadata['overview'] = "Overview could not be generated: Gemini API rate limit exceeded. Please wait a minute and re-index."
+        if "rate_limit" in err_msg.lower() or "quota" in err_msg.lower():
+            metadata['overview'] = "Overview could not be generated: Claude API rate limit exceeded. Please wait a minute and re-index."
         else:
             metadata['overview'] = "Overview could not be generated. Check server logs."
 

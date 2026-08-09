@@ -222,6 +222,12 @@ body {
     white-space: pre-line;
 }
 
+#repoContent {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+
 /* Language Bar */
 .language-bar {
     display: flex;
@@ -304,11 +310,12 @@ body {
 
 /* Input Area */
 .chat-input-container {
-    position: fixed;
-    bottom: 24px;
-    left: 274px; /* sidebar width + padding */
-    right: 24px;
+    position: sticky;
+    bottom: -24px; /* match main-panel padding to stick to the very bottom */
     background-color: var(--bg-canvas);
+    padding: 16px 0 24px 0;
+    margin-top: auto;
+    z-index: 10;
 }
 
 #askForm {
