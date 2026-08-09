@@ -1,5 +1,5 @@
 project:
-  name: repo-assistant
+  name: repo-onboard-assistant
 services:
   - hostname: db
     type: postgresql@16

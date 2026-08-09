@@ -21,6 +21,9 @@ document.getElementById('indexForm').addEventListener('submit', async (e) => {
     }
 
     resetUI();
+    const indexBtn = document.getElementById('indexBtn');
+    if (indexBtn) indexBtn.disabled = true;
+
     updateStatus('Indexing repository...', 'pulse');
 
     try {
@@ -74,6 +77,8 @@ function updateStatus(text, type) {
 }
 
 function showError(msg) {
+    const indexBtn = document.getElementById('indexBtn');
+    if (indexBtn) indexBtn.disabled = false;
     updateStatus('Failed', 'error');
     document.getElementById('loadingState').style.display = 'none';
     document.getElementById('repoContent').style.display = 'block';
@@ -99,6 +104,8 @@ function getExt(filename) {
 }
 
 function renderRepoData(data) {
+    const indexBtn = document.getElementById('indexBtn');
+    if (indexBtn) indexBtn.disabled = false;
     document.getElementById('emptyState').style.display = 'none';
     document.getElementById('loadingState').style.display = 'none';
     document.getElementById('repoContent').style.display = 'flex';
@@ -115,6 +122,7 @@ function renderRepoData(data) {
         const color = langColors[ext] || defaultColor;
         const fileDiv = document.createElement('div');
         fileDiv.className = 'file-item';
+        fileDiv.title = file;
         fileDiv.innerHTML = `
             <div class="lang-dot" style="background-color: ${color}"></div>
             <span>${file}</span>
@@ -273,8 +281,8 @@ if (resizer && sidebar) {
         if (!isResizing) return;
         
         let newWidth = e.clientX;
-        if (newWidth < 150) newWidth = 150;
-        if (newWidth > window.innerWidth / 2) newWidth = window.innerWidth / 2;
+        if (newWidth < 200) newWidth = 200;
+        if (newWidth > window.innerWidth * 0.6) newWidth = window.innerWidth * 0.6;
         
         sidebar.style.width = `${newWidth}px`;
     });
