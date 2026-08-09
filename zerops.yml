@@ -10,7 +10,8 @@ zerops:
         - port: 8000
           httpSupport: true
       prepareCommands:
-        - apt-get update && apt-get install -y git
+        - which git || true
+        - git --version || true
         - python3 -m pip install --upgrade pip
         - python3 -m pip install -r requirements.txt
       initCommands:
