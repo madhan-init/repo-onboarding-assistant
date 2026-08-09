@@ -8,10 +8,14 @@ zerops:
       base: python@3.12
       ports:
         - port: 8000
+          httpSupport: true
       prepareCommands:
+        - zsc-install git
+        - python3 -m pip install --upgrade pip
         - python3 -m pip install -r requirements.txt
       initCommands:
         - python3 db/client.py # Initializes the database on deploy
       start: python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8000
       envVariables:
         DATABASE_URL: ${db_connectionString}
+
