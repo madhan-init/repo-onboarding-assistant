@@ -1,6 +1,6 @@
 CREATE EXTENSION IF NOT EXISTS vector;
 
-CREATE TABLE repos (
+CREATE TABLE IF NOT EXISTS repos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   url TEXT NOT NULL,
   status TEXT DEFAULT 'pending', -- pending|indexing|ready|failed
@@ -9,7 +9,7 @@ CREATE TABLE repos (
   indexed_at TIMESTAMPTZ
 );
 
-CREATE TABLE chunks (
+CREATE TABLE IF NOT EXISTS chunks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   repo_id UUID REFERENCES repos(id) ON DELETE CASCADE,
   file_path TEXT NOT NULL,
@@ -20,4 +20,3 @@ CREATE TABLE chunks (
   embedding VECTOR(1024)
 );
 
-CREATE INDEX ON chunks USING ivfflat (embedding vector_cosine_ops);

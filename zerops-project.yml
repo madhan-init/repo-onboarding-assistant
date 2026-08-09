@@ -3,8 +3,16 @@ project:
 services:
   - hostname: db
     type: postgresql@16
-  - hostname: app
+
+  - hostname: api
     type: python@3.12
     ports:
       - port: 8000
         httpSupport: true
+
+  - hostname: frontend
+    type: static
+    ports:
+      - port: 80
+        httpSupport: true
+

@@ -1,5 +1,5 @@
 zerops:
-  - setup: app
+  - setup: api
     build:
       base: python@3.12
       deployFiles:
@@ -10,7 +10,7 @@ zerops:
         - port: 8000
           httpSupport: true
       prepareCommands:
-        - zsc-install git
+        - apt-get update && apt-get install -y git
         - python3 -m pip install --upgrade pip
         - python3 -m pip install -r requirements.txt
       initCommands:
@@ -18,4 +18,14 @@ zerops:
       start: python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8000
       envVariables:
         DATABASE_URL: ${db_connectionString}
+
+  - setup: frontend
+    build:
+      base: static
+      deployFiles:
+        - static
+    run:
+      base: static
+
+
 

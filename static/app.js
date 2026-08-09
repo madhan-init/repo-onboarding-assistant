@@ -1,5 +1,6 @@
 let currentRepoId = null;
 let pollInterval = null;
+const API_BASE = window.API_BASE || '';
 
 const langColors = {
     '.py': '#3572A5',
@@ -27,7 +28,7 @@ document.getElementById('indexForm').addEventListener('submit', async (e) => {
     updateStatus('Indexing repository...', 'pulse');
 
     try {
-        const res = await fetch('/index', {
+        const res = await fetch(`${API_BASE}/index`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({github_url: url})
@@ -48,7 +49,7 @@ function startPolling() {
     if (pollInterval) clearInterval(pollInterval);
     pollInterval = setInterval(async () => {
         try {
-            const res = await fetch(`/overview/${currentRepoId}`);
+            const res = await fetch(`${API_BASE}/overview/${currentRepoId}`);
             const data = await res.json();
             
             if (data.status === 'ready') {
@@ -165,7 +166,7 @@ document.getElementById('askForm').addEventListener('submit', async (e) => {
     btn.textContent = 'Thinking...';
     
     try {
-        const res = await fetch('/ask', {
+        const res = await fetch(`${API_BASE}/ask`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({repo_id: currentRepoId, question: question})
@@ -319,7 +320,7 @@ async function openFileViewer(filePath) {
     fileModal.style.display = 'flex';
     
     try {
-        const res = await fetch(`/file/${currentRepoId}?file_path=${encodeURIComponent(filePath)}`);
+        const res = await fetch(`${API_BASE}/file/${currentRepoId}?file_path=${encodeURIComponent(filePath)}`);
         const data = await res.json();
         document.getElementById('fileViewerContent').textContent = data.content || 'File content not found.';
     } catch (err) {
