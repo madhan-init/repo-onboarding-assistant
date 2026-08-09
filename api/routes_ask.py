@@ -58,7 +58,7 @@ def ask_question(request: AskRequest):
     try:
         client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
         response = client.messages.create(
-            model="claude-3-5-sonnet-20240620",
+            model="claude-sonnet-4-6",
             max_tokens=1000,
             system=system_prompt,
             messages=[{"role": "user", "content": request.question}]
