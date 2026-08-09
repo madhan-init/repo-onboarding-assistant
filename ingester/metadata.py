@@ -45,7 +45,7 @@ def generate_metadata(target_dir: str) -> Dict:
         prompt = f"Analyze this repository metadata and write a short overview structured exactly like this: 1. A simple overview about the project. 2. The core modules/folders. 3. What type of project it contains (e.g. web app, library, API, etc). Do not use markdown formatting like asterisks or bold text. Metadata: {json.dumps(metadata)}"
         
         response = client.messages.create(
-            model="claude-sonnet-4-6",
+            model="claude-3-5-sonnet-20240620",
             max_tokens=500,
             messages=[{"role": "user", "content": prompt}]
         )
