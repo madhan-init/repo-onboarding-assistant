@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+psycopg[binary]
+pgvector
+gitpython
+anthropic
+python-dotenv
+google-genai
