@@ -58,7 +58,7 @@ def ask_question(request: AskRequest):
     try:
         client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
         response = client.messages.create(
-            model="claude-sonnet-4-6",
+            model="claude-3-5-sonnet-20240620",
             max_tokens=1000,
             system=system_prompt,
             messages=[{"role": "user", "content": request.question}]
@@ -66,7 +66,7 @@ def ask_question(request: AskRequest):
         answer = response.content[0].text
     except Exception as e:
         logger.error(f"Failed to call Claude: {e}")
-        raise HTTPException(status_code=500, detail="Failed to generate answer")
+        raise HTTPException(status_code=500, detail=f"Failed to generate answer: {str(e)}")
 
     # 4. Extract citations from the answer
     citation_pattern = re.compile(r'\[(.*?):(\d+)-(\d+)\]')

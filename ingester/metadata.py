@@ -56,6 +56,6 @@ def generate_metadata(target_dir: str) -> Dict:
         if "rate_limit" in err_msg.lower() or "quota" in err_msg.lower():
             metadata['overview'] = "Overview could not be generated: Claude API rate limit exceeded. Please wait a minute and re-index."
         else:
-            metadata['overview'] = "Overview could not be generated. Check server logs."
+            metadata['overview'] = f"Overview could not be generated: {err_msg}"
 
     return metadata
