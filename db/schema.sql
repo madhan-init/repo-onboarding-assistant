@@ -16,6 +16,6 @@ CREATE TABLE IF NOT EXISTS chunks (
   end_line INT,
   chunk_type TEXT,   -- code|doc|config
   raw_text TEXT,
-  embedding VECTOR(1024)
+  embedding VECTOR(768)
 );
 

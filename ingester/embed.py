@@ -2,26 +2,36 @@ import os
 import logging
 import time
 from typing import List, Dict
-import voyageai
+import requests
 
 logger = logging.getLogger(__name__)
 
-# Voyage AI Free Tier: 3 RPM (Requests Per Minute) and 10K TPM (Tokens Per Minute).
-# BATCH_SIZE = 2 ensures single requests stay well under 10K tokens.
-BATCH_SIZE = 2
+# Fireworks AI limit is much higher, we can use a larger batch size
+BATCH_SIZE = 50
 
 def get_embeddings(texts: List[str]) -> List[List[float]]:
-    vo = voyageai.Client(api_key=os.environ.get("VOYAGE_API_KEY", os.environ.get("EMBEDDING_API_KEY")))
+    url = "https://api.fireworks.ai/inference/v1/embeddings"
+    api_key = os.environ.get("FIREWORKS_API_KEY", os.environ.get("VOYAGE_API_KEY"))
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "model": "nomic-ai/nomic-embed-text-v1.5",
+        "input": texts
+    }
     
     max_retries = 5
     for attempt in range(max_retries):
         try:
-            response = vo.embed(texts, model="voyage-3", input_type="document")
-            return response.embeddings
+            response = requests.post(url, headers=headers, json=data)
+            response.raise_for_status()
+            result = response.json()
+            return [item['embedding'] for item in result['data']]
         except Exception as e:
             err_str = str(e)
             if attempt < max_retries - 1:
-                wait_time = 65  # Full minute reset for rate limit window
+                wait_time = 15  # wait 15 seconds before retrying
                 logger.warning(f"Embedding attempt {attempt + 1} failed: {err_str}. Retrying in {wait_time}s...")
                 time.sleep(wait_time)
             else:
@@ -50,8 +60,8 @@ def embed_and_store_chunks(repo_id: str, chunks: List[Dict], get_connection):
                         (repo_id, chunk['file_path'], chunk['start_line'], chunk['end_line'], chunk['chunk_type'], chunk['raw_text'], embeddings[j])
                     )
                 
-                # Pause 21 seconds between batches to respect the 3 Requests Per Minute (3 RPM) free-tier limit
+                # Small pause to avoid hammering the API
                 if i + BATCH_SIZE < len(chunks):
-                    time.sleep(21)
+                    time.sleep(0.5)
 
 

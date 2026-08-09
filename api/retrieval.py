@@ -1,15 +1,26 @@
 import os
 import logging
 from typing import List, Dict
-import voyageai
+import requests
 from db.client import get_connection
 
 logger = logging.getLogger(__name__)
 
 def embed_query(query: str) -> List[float]:
-    vo = voyageai.Client(api_key=os.environ.get("VOYAGE_API_KEY", os.environ.get("EMBEDDING_API_KEY")))
-    response = vo.embed([query], model="voyage-3", input_type="query")
-    return response.embeddings[0]
+    url = "https://api.fireworks.ai/inference/v1/embeddings"
+    api_key = os.environ.get("FIREWORKS_API_KEY", os.environ.get("VOYAGE_API_KEY"))
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "model": "nomic-ai/nomic-embed-text-v1.5",
+        "input": [query]
+    }
+    response = requests.post(url, headers=headers, json=data)
+    response.raise_for_status()
+    result = response.json()
+    return result['data'][0]['embedding']
 
 def search_chunks(repo_id: str, query: str, top_k: int = 8) -> List[Dict]:
     query_embedding = embed_query(query)
