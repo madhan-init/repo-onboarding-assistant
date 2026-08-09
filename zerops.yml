@@ -1,28 +1,11 @@
 zerops:
-  - setup: app
-    build:
-      base: python@3.12
-      deployFiles:
-        - .
-    run:
-      base: python@3.12
-      ports:
-        - port: 8000
-          httpSupport: true
-      prepareCommands:
-        - python3 -m pip install --break-system-packages --upgrade pip
-        - python3 -m pip install --break-system-packages -r requirements.txt
-      initCommands:
-        - python3 db/client.py # Initializes the database on deploy
-      start: python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8000
-      envVariables:
-        DATABASE_URL: ${db_connectionString}
-
   - setup: api
     build:
       base: python@3.12
       deployFiles:
-        - .
+        - ./
+      addToRunPrepare:
+        - requirements.txt
     run:
       base: python@3.12
       ports:
