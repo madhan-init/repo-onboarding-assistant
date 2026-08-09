@@ -287,6 +287,7 @@ if (resizer && sidebar) {
             document.body.style.cursor = '';
         }
     });
+}
 
 // File Viewer Modal Logic
 const fileModal = document.getElementById('fileViewerModal');
@@ -316,5 +317,4 @@ async function openFileViewer(filePath) {
     } catch (err) {
         document.getElementById('fileViewerContent').textContent = 'Error loading file content.';
     }
-}
 }
