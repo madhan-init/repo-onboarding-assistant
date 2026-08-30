@@ -4,6 +4,8 @@ import logging
 from typing import Dict
 import anthropic
 
+from api.llm import MODEL, get_client
+
 logger = logging.getLogger(__name__)
 
 def generate_metadata(target_dir: str) -> Dict:
@@ -41,11 +43,11 @@ def generate_metadata(target_dir: str) -> Dict:
     }
     
     try:
-        client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+        client = get_client()
         prompt = f"Analyze this repository metadata and write a short overview structured exactly like this: 1. A simple overview about the project. 2. The core modules/folders. 3. What type of project it contains (e.g. web app, library, API, etc). Do not use markdown formatting like asterisks or bold text. Metadata: {json.dumps(metadata)}"
         
         response = client.messages.create(
-            model="claude-sonnet-4-6",
+            model=MODEL,
             max_tokens=500,
             messages=[{"role": "user", "content": prompt}]
         )

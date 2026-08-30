@@ -4,11 +4,13 @@ import re
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Dict, Optional
-from anthropic import Anthropic
 
 from db.client import get_connection
-from api.retrieval import search_chunks, build_context_block
+from api.retrieval import search, build_context_block
+from config.retrieval import DEFAULT_CONFIG, get as get_config
+from api.llm import MODEL, get_client
 from api.prompt import GROUNDING_SYSTEM_PROMPT
+from eval.metrics import select_by_line_budget
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -16,6 +18,7 @@ router = APIRouter()
 class AskRequest(BaseModel):
     repo_id: str
     question: str
+    config: Optional[str] = None   # ladder row name; defaults to DEFAULT_CONFIG
 
 class Citation(BaseModel):
     file_path: str
@@ -41,8 +44,14 @@ def ask_question(request: AskRequest):
     if status != 'ready':
         raise HTTPException(status_code=400, detail=f"Repo is not ready. Current status: {status}")
 
-    # 1. Retrieve chunks
-    chunks = search_chunks(request.repo_id, request.question, top_k=8)
+    # 1. Retrieve chunks. Same entry point the eval harness uses, so the
+    #    measured system and the shipped system cannot drift.
+    try:
+        config = get_config(request.config or DEFAULT_CONFIG)
+    except KeyError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    ranked = search(request.repo_id, request.question, config)
+    chunks = select_by_line_budget(ranked, config.line_budget)
     
     if not chunks:
         return AskResponse(
@@ -56,9 +65,9 @@ def ask_question(request: AskRequest):
 
     # 3. Call Claude
     try:
-        client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+        client = get_client()
         response = client.messages.create(
-            model="claude-sonnet-4-6",
+            model=MODEL,
             max_tokens=1000,
             system=system_prompt,
             messages=[{"role": "user", "content": request.question}]

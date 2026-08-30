@@ -5,13 +5,16 @@ from typing import List, Dict
 logger = logging.getLogger(__name__)
 
 IGNORE_DIRS = {'.git', 'node_modules', 'dist', 'build', '.venv'}
-ALLOW_EXTENSIONS = {'.py', '.js', '.ts', '.go', '.java', '.rb', '.md', '.txt', '.yaml', '.json', '.toml', '.sql', '.html', '.css'}
+# .rst matters: most Python projects (flask included) write their whole manual
+# in it, and excluding it leaves the tool unable to answer any prose question.
+ALLOW_EXTENSIONS = {'.py', '.js', '.ts', '.go', '.java', '.rb', '.md', '.rst', '.txt',
+                    '.yaml', '.json', '.toml', '.sql', '.html', '.css'}
 MAX_FILE_SIZE = 500 * 1024  # 500KB
 CHUNK_SIZE = 100
 OVERLAP = 10
 
 def get_chunk_type(ext: str) -> str:
-    if ext in {'.md', '.txt'}:
+    if ext in {'.md', '.rst', '.txt'}:
         return 'doc'
     if ext in {'.json', '.yaml', '.toml'}:
         return 'config'

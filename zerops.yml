@@ -16,7 +16,8 @@ zerops:
         - python3 -m pip install --break-system-packages -r requirements.txt
       initCommands:
         - python3 db/setup_extension.py # Sets up pgvector using superuser
-        - python3 db/client.py # Initializes the database on deploy
+        - python3 db/client.py # Initializes the database on deploy (DESTRUCTIVE)
+        - python3 db/migrate.py # Additive; keeps a pre-existing database in shape
       start: python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8000
       envVariables:
         DATABASE_URL: ${db_connectionString}
