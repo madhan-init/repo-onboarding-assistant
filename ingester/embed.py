@@ -4,20 +4,22 @@ import time
 from typing import List, Dict
 import requests
 
+from config.embedding import EMBED_MODEL, EMBED_URL
+
 logger = logging.getLogger(__name__)
 
 # Fireworks AI limit is much higher, we can use a larger batch size
 BATCH_SIZE = 50
 
 def get_embeddings(texts: List[str]) -> List[List[float]]:
-    url = "https://api.fireworks.ai/inference/v1/embeddings"
-    api_key = os.environ.get("FIREWORKS_API_KEY", os.environ.get("VOYAGE_API_KEY"))
+    url = EMBED_URL
+    api_key = os.environ.get("FIREWORKS_API_KEY")
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
     data = {
-        "model": "nomic-ai/nomic-embed-text-v1.5",
+        "model": EMBED_MODEL,
         "input": texts
     }
     
@@ -38,7 +40,8 @@ def get_embeddings(texts: List[str]) -> List[List[float]]:
                 logger.error(f"Embedding failed after {max_retries} attempts: {err_str}")
                 raise e
 
-def embed_and_store_chunks(repo_id: str, chunks: List[Dict], get_connection):
+def embed_and_store_chunks(repo_id: str, chunks: List[Dict], get_connection,
+                           chunk_label: str = "line100"):
     with get_connection() as conn:
         with conn.cursor() as cur:
             for i in range(0, len(chunks), BATCH_SIZE):
@@ -54,10 +57,10 @@ def embed_and_store_chunks(repo_id: str, chunks: List[Dict], get_connection):
                 for j, chunk in enumerate(batch):
                     cur.execute(
                         """
-                        INSERT INTO chunks (repo_id, file_path, start_line, end_line, chunk_type, raw_text, embedding)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        INSERT INTO chunks (repo_id, file_path, start_line, end_line, chunk_type, raw_text, embedding, chunk_label)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                         """,
-                        (repo_id, chunk['file_path'], chunk['start_line'], chunk['end_line'], chunk['chunk_type'], chunk['raw_text'], embeddings[j])
+                        (repo_id, chunk['file_path'], chunk['start_line'], chunk['end_line'], chunk['chunk_type'], chunk['raw_text'], embeddings[j], chunk_label)
                     )
                 
                 # Small pause to avoid hammering the API
