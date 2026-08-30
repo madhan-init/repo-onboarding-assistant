@@ -75,36 +75,28 @@ def _fw():
     return dim == EMBED_DIM, f"dim={dim} (schema requires {EMBED_DIM})"
 
 
-@check("anthropic (rows 0-3 ok without)")
-def _anthropic():
-    import anthropic
-    key = os.environ.get("ANTHROPIC_API_KEY")
-    if not key:
-        return False, "ANTHROPIC_API_KEY missing from .env"
-    workspace = os.environ.get("ANTHROPIC_WORKSPACE_ID")
-    headers = {"anthropic-workspace-id": workspace} if workspace else None
-    client = anthropic.Anthropic(default_headers=headers)
+@check("llm (rows 0-3 ok without)")
+def _llm():
+    sys.path.insert(0, ROOT)
+    from api.llm import complete
     try:
-        client.messages.create(model="claude-sonnet-4-6", max_tokens=8,
-                               messages=[{"role": "user", "content": "ok"}])
+        result = complete(user="Reply with the single word: ok", max_tokens=32)
     except Exception as exc:
-        msg = str(exc)
-        if "anthropic-workspace-id" in msg:
-            return False, "identity-linked key -- set ANTHROPIC_WORKSPACE_ID in .env"
-        return False, f"{type(exc).__name__}: {msg[:120]}"
-    return True, "claude-sonnet-4-6 reachable" + (" (workspace header set)" if workspace else "")
+        return False, f"no provider reachable -- {str(exc)[:150]}"
+    return True, f"{result.provider} / {result.model}"
 
 
 if __name__ == "__main__":
-    required = [r for r in results if r[1] != "anthropic (rows 0-3 ok without)"]
+    required = [r for r in results if not r[1].startswith("llm")]
     failed_required = [r for r in required if not r[0]]
-    llm_ok = next((r[0] for r in results if r[1].startswith("anthropic")), False)
+    llm_ok = next((r[0] for r in results if r[1].startswith("llm")), False)
     print()
     if failed_required:
         print(f"BLOCKED: {len(failed_required)} required check(s) failed")
         sys.exit(1)
     if not llm_ok:
         print("READY for ladder rows 0-3 (retrieval metrics need no LLM).")
-        print("Row 4 (query expansion) and the demo are blocked until Anthropic works.")
+        print("Row 4 (query expansion) and the demo need an LLM: set ANTHROPIC_API_KEY")
+        print("(with ANTHROPIC_WORKSPACE_ID if identity-linked) or GEMINI_API_KEY.")
     else:
         print("READY: all checks pass.")

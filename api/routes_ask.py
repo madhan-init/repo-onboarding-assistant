@@ -8,7 +8,7 @@ from typing import List, Dict, Optional
 from db.client import get_connection
 from api.retrieval import search, build_context_block
 from config.retrieval import DEFAULT_CONFIG, get as get_config
-from api.llm import MODEL, get_client
+from api.llm import complete
 from api.prompt import GROUNDING_SYSTEM_PROMPT
 from eval.metrics import select_by_line_budget
 
@@ -28,6 +28,7 @@ class Citation(BaseModel):
 class AskResponse(BaseModel):
     answer: str
     citations: List[Citation]
+    model: Optional[str] = None
 
 def get_repo_status(repo_id: str) -> Optional[str]:
     with get_connection() as conn:
@@ -56,7 +57,8 @@ def ask_question(request: AskRequest):
     if not chunks:
         return AskResponse(
             answer="not found in this repo",
-            citations=[]
+            citations=[],
+            model=None
         )
 
     # 2. Build context
@@ -65,16 +67,10 @@ def ask_question(request: AskRequest):
 
     # 3. Call Claude
     try:
-        client = get_client()
-        response = client.messages.create(
-            model=MODEL,
-            max_tokens=1000,
-            system=system_prompt,
-            messages=[{"role": "user", "content": request.question}]
-        )
-        answer = response.content[0].text
+        result = complete(user=request.question, system=system_prompt, max_tokens=1000)
+        answer = result.text
     except Exception as e:
-        logger.error(f"Failed to call Claude: {e}")
+        logger.error(f"LLM call failed: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to generate answer: {str(e)}")
 
     # 4. Extract citations from the answer
@@ -94,4 +90,4 @@ def ask_question(request: AskRequest):
                 end_line=int(end_line)
             ))
 
-    return AskResponse(answer=answer, citations=citations)
+    return AskResponse(answer=answer, citations=citations, model=result.model)

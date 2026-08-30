@@ -28,5 +28,5 @@ def missing_requirements(config: RetrievalConfig, chunk_counts: Dict[str, int],
         if not module_available.get("api.expand"):
             reasons.append("api.expand is not implemented yet")
         if not llm_ok:
-            reasons.append("LLM unreachable (set ANTHROPIC_WORKSPACE_ID in .env)")
+            reasons.append("LLM unreachable (set ANTHROPIC_API_KEY or GEMINI_API_KEY)")
     return reasons

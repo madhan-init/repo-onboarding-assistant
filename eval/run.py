@@ -111,7 +111,7 @@ def main():
 
     counts = indexed_labels(repo_id)
     modules = available_modules()
-    llm_ok = bool(os.environ.get("ANTHROPIC_WORKSPACE_ID"))
+    llm_ok = bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("GEMINI_API_KEY"))
 
     runs, skipped = [], []
     for config in configs:

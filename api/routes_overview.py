@@ -10,6 +10,7 @@ router = APIRouter()
 class OverviewResponse(BaseModel):
     status: str
     overview_text: Optional[str] = None
+    overview_error: Optional[str] = None
     folder_tree: Optional[List[str]] = None
     language_counts: Optional[Dict[str, int]] = None
     entry_points: Optional[List[str]] = None
@@ -32,6 +33,7 @@ def get_overview(repo_id: str):
             return OverviewResponse(
                 status=status,
                 overview_text=metadata.get("overview"),
+                overview_error=metadata.get("overview_error"),
                 folder_tree=metadata.get("folder_tree"),
                 language_counts=metadata.get("language_counts"),
                 entry_points=metadata.get("entry_points")
