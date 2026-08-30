@@ -56,37 +56,43 @@ def get_snippet(repo_id: str, file_path: str):
 
 @router.get("/file/{repo_id}")
 def get_file(repo_id: str, file_path: str):
+    """Return exact file content.
+
+    Reads the `files` table. Chunk-stitching was the old path and is kept only as
+    a fallback for repos indexed before that table existed -- it cannot survive
+    AST chunking, which leaves gaps between functions and has no uniform overlap.
+    """
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT start_line, end_line, raw_text FROM chunks WHERE repo_id = %s AND file_path = %s ORDER BY start_line ASC",
-                (repo_id, file_path)
+                "SELECT content FROM files WHERE repo_id = %s AND file_path = %s",
+                (repo_id, file_path),
+            )
+            row = cur.fetchone()
+            if row:
+                return {"content": row[0]}
+
+            cur.execute(
+                """
+                SELECT start_line, end_line, raw_text FROM chunks
+                WHERE repo_id = %s AND file_path = %s AND chunk_label = 'line100'
+                ORDER BY start_line ASC
+                """,
+                (repo_id, file_path),
             )
             rows = cur.fetchall()
-            
+
     if not rows:
         return {"content": "File not found in index."}
-        
-    lines = []
-    last_end = 0
-    
-    for row in rows:
-        start = row[0]
-        end = row[1]
-        text = row[2]
-        chunk_lines = text.split('\n')
-        
-        # Remove trailing empty string from split if text ends with \n
-        if len(chunk_lines) > 0 and chunk_lines[-1] == '':
+
+    lines, last_end = [], 0
+    for start_line, end_line, text in rows:
+        chunk_lines = text.split("\n")
+        if chunk_lines and chunk_lines[-1] == "":
             chunk_lines.pop()
-            
-        if start <= last_end:
-            skip = last_end - start + 1
-            lines.extend(chunk_lines[skip:])
+        if start_line <= last_end:
+            lines.extend(chunk_lines[last_end - start_line + 1:])
         else:
             lines.extend(chunk_lines)
-            
-        last_end = end
-        
-    return {"content": '\n'.join(lines)}
-
+        last_end = end_line
+    return {"content": "\n".join(lines)}
