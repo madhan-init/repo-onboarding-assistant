@@ -111,9 +111,12 @@ function renderRepoData(data) {
     document.getElementById('loadingState').style.display = 'none';
     document.getElementById('repoContent').style.display = 'flex';
     
-    let overview = data.overview_text || 'No overview available.';
+    let overview = data.overview_text
+        || (data.overview_error ? `Overview unavailable \u2014 ${data.overview_error}` : 'No overview available.');
     overview = overview.replace(/\*\*/g, '');
-    document.getElementById('overviewText').textContent = overview;
+    const overviewEl = document.getElementById('overviewText');
+    overviewEl.textContent = overview;
+    overviewEl.classList.toggle('degraded', !data.overview_text);
     
     // File tree
     const treeDiv = document.getElementById('fileTree');

@@ -557,3 +557,9 @@ body {
     font-size: 13px;
     line-height: 1.5;
 }
+
+/* Overview failed to generate: shown as a muted note, not as content. */
+#overviewText.degraded {
+  opacity: 0.7;
+  font-style: italic;
+}

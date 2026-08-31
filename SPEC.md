@@ -15,8 +15,8 @@ Checked on 2026-08-30, not assumed:
 | Postgres | 16.14, **pgvector 0.8.6**, via `docker compose up -d` |
 | Existing data | `repos=4, chunks=232` — **`db/client.py` must never be run**, it drops both tables |
 | Embeddings | Fireworks `nomic-ai/nomic-embed-text-v1.5` → **768 dims**, matches `VECTOR(768)` |
-| Anthropic | ⚠️ **BLOCKED** — identity-linked key needs `ANTHROPIC_WORKSPACE_ID` in `.env` |
-| Gemini | works (unused; fallback only) |
+| Anthropic | ⚠️ identity-linked key; its `ANTHROPIC_WORKSPACE_ID` names a workspace outside the key's org |
+| Gemini | **working — currently the active LLM** via the fallback in `api/llm.py` |
 | Machine | Apple M2, 16GB, py3.11 arm64, MPS available |
 | Deps resolve | `tree-sitter 0.26.0`, `tree-sitter-python 0.25.0`, `sentence-transformers 6.0.0`, `torch 2.13.0` |
 
@@ -66,8 +66,12 @@ lands first, then retrieval-time changes in the order they execute at query time
 | 4 | +expansion | LLM emits identifiers, filtered against corpus vocab | **yes** |
 
 Expansion must come after hybrid — it feeds the lexical arm, so placed earlier it is a
-structural no-op. Rows 0–3 need no API key beyond Fireworks; only row 4 is blocked on
-`ANTHROPIC_WORKSPACE_ID`.
+structural no-op. Rows 0–3 need no LLM at all, only an embedding key.
+
+**Row 4 currently runs on `gemini-2.5-flash`, not Claude.** `api/llm.py` falls back when
+Anthropic is unreachable. This is not cosmetic: the answers feeding citation validity and
+any published number come from that model, so RESULTS.md must name it. If the Anthropic
+workspace is fixed later, re-run row 4 rather than mixing models across one table.
 
 **Abstention (feature 4) is not a ladder row.** Refusing correctly means retrieving nothing,
 so a recall metric scores correct refusals as failures. It gets its own table.
