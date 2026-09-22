@@ -1,169 +1,128 @@
 # Repo Onboarding Assistant
 
-Ask questions about an unfamiliar codebase and get answers cited back to exact file and line
-ranges.
+A codebase RAG assistant that lets developers ask natural-language questions about unfamiliar GitHub repositories and get **answers grounded in exact files and line ranges**.
 
-Point it at a GitHub URL. It clones the repository, chunks and embeds the source and
-documentation, and answers natural-language questions against it — every claim linked to the
-lines it came from, so you can check the answer rather than trust it.
+## How It Works
 
+```text
+GitHub Repository
+       ↓
+Clone → Chunk → Embed
+       ↓
+PostgreSQL + pgvector
+       ↓
+Natural Language Query
+       ↓
+Vector Retrieval → Context → LLM
+       ↓
+Cited Answer
 ```
-Q: how do I upload and handle files in a form?
 
-Mark the <form> tag with enctype="multipart/form-data"     [docs/patterns/fileuploads.rst:4-5]
-Access the uploaded file from the request.files dictionary [docs/quickstart.rst:549]
-Secure the filename with werkzeug.utils.secure_filename    [docs/patterns/fileuploads.rst:79-83]
-```
+## Features
 
-*(answered against `pallets/flask`, 514 indexed chunks)*
+* Index GitHub repositories automatically
+* Search source code and documentation using semantic retrieval
+* Generate answers with exact file and line citations
+* Browse indexed repository files
+* PostgreSQL + pgvector based vector search
+* Configurable retrieval pipeline
+* Built-in retrieval evaluation and testing
 
-## Status
+## Tech Stack
 
-Runs **locally**. The Zerops deployment is inactive — see [Deployment](#deployment).
+**Backend:** Python, FastAPI
+**Database:** PostgreSQL, pgvector
+**Embeddings:** Fireworks — `nomic-ai/nomic-embed-text-v1.5`
+**LLM:** Anthropic / Gemini
+**Frontend:** HTML, CSS, JavaScript
+**Testing:** pytest
 
-Working: indexing, retrieval, file browsing, cited answers, and a full evaluation harness.
-In progress: the retrieval improvements described in [SPEC.md](SPEC.md) — AST-aware chunking,
-hybrid search, reranking and query expansion are specified and seamed in, but not yet
-implemented, so there is no results table to publish yet.
+## Quick Start
 
-## Quick start
+### 1. Start PostgreSQL
 
 ```bash
-docker compose up -d                                # Postgres + pgvector on :5432
-uv run python3 db/migrate.py                        # additive; safe to run on live data
-uv run python3 preflight.py                         # verify every dependency in one pass
-uv run uvicorn api.main:app --reload --port 8000    # http://localhost:8000
+docker compose up -d
 ```
 
-> **Do not run `db/client.py`.** It drops and recreates both tables. `db/migrate.py` is the
-> safe path; `client.py` exists only to bootstrap an empty database.
+### 2. Run migrations
 
-Run `preflight.py` first whenever something is wrong. It checks Postgres, pgvector, the
-schema, the 768-dimension embedding contract and LLM reachability, and tells you which of
-those is actually broken instead of failing halfway through an ingest.
-
-### Environment
-
-Put these in `.env`:
-
-| Variable | Required | Purpose |
-|---|---|---|
-| `FIREWORKS_API_KEY` | **yes** | embeddings — nothing works without it |
-| `ANTHROPIC_API_KEY` | one of | answering questions and writing repo overviews |
-| `GEMINI_API_KEY` | one of | fallback LLM |
-| `ANTHROPIC_WORKSPACE_ID` | conditional | needed only if your Anthropic key is identity-linked |
-| `DATABASE_URL` | no | defaults to the local Docker Postgres |
-| `LLM_PROVIDER` | no | `auto` (default), `anthropic`, or `gemini` |
-
-## Architecture
-
-```mermaid
-%%{init: {"flowchart": {"curve": "linear"}}}%%
-flowchart TD
-    Client([Browser])
-
-    subgraph App [Application]
-        API[FastAPI - api/]
-        Worker[Ingester subprocess - ingester/]
-        DB[(PostgreSQL + pgvector)]
-    end
-
-    subgraph Eval [Measurement]
-        Harness[Eval harness - eval/]
-    end
-
-    subgraph External [Providers]
-        Embed[Fireworks - embeddings]
-        LLM[Anthropic / Gemini - answers]
-    end
-
-    Client -->|Loads UI| API
-    Client <-->|REST| API
-    API -->|Spawns on /index| Worker
-    API <-->|Vector + lexical search| DB
-    Worker -->|Chunks, embeddings, file content| DB
-    API <-->|Generates answer| LLM
-    API <-->|Embeds query| Embed
-    Worker <-->|Embeds chunks| Embed
-    Worker -->|Repo overview| LLM
-    Harness -->|Same retrieval path as /ask| DB
+```bash
+uv run python3 db/migrate.py
 ```
 
-Three processes over one database. The ingester is a **detached subprocess**, not a task
-queue — `POST /index` spawns it and returns immediately, and the frontend polls
-`/overview/{repo_id}` until the status settles.
+### 3. Configure environment
 
-Chunks and full file content are stored separately: `chunks` is the retrieval index, `files`
-holds verbatim content so the file viewer never depends on how the code was chunked.
+Create `.env`:
 
-## How retrieval works
-
-Every retrieval strategy is a **config**, not a branch in the code — and `/ask` and the
-evaluation harness call the same entry point, so the system you measure and the system you
-ship cannot drift apart.
-
-```
-query expansion → dense (pgvector) + lexical (tsvector) → RRF fusion
-               → cross-encoder rerank → abstain if weak → line-budget selection → LLM
+```env
+FIREWORKS_API_KEY=your_key
+ANTHROPIC_API_KEY=your_key
+GEMINI_API_KEY=your_key
+DATABASE_URL=your_database_url
+LLM_PROVIDER=auto
 ```
 
-Two details that were measured rather than assumed:
+### 4. Start the application
 
-- The full-text index uses Postgres's **`simple`** configuration, never `english`. The
-  `english` config strips stopwords, and `is`, `not`, `in`, `and`, `or`, `if` are Python
-  keywords — a code question loses most of its terms.
-- `simple` splits `send_file` into `send` + `file` for free, but keeps `app.route` as a single
-  token. A query built only from the parts would never match the dotted form.
+```bash
+uv run python3 preflight.py
+uv run uvicorn api.main:app --reload --port 8000
+```
+
+Open `http://localhost:8000`.
+
+## Index a Repository
+
+```bash
+uv run python3 ingester/run.py <repo_id> <github_url>
+```
+
+The repository is cloned, chunked, embedded, and stored in PostgreSQL.
+
+## API
+
+| Method | Endpoint              | Purpose                          |
+| ------ | --------------------- | -------------------------------- |
+| `POST` | `/index`              | Index a GitHub repository        |
+| `POST` | `/ask`                | Ask questions about a repository |
+| `GET`  | `/overview/{repo_id}` | Repository status and metadata   |
+| `GET`  | `/file/{repo_id}`     | Retrieve a complete file         |
 
 ## Evaluation
 
-Retrieval quality is measured, not claimed. The metrics are **pure vector and SQL maths**
-against hand-recorded answer locations, so they need no LLM at all and anyone with an
-embedding key can reproduce them.
-
 ```bash
-uv run python3 eval/author.py     # write questions; validates every span against the index
-uv run python3 eval/run.py        # score configs; recall, MRR, coverage, paired diffs
+uv run python3 -m pytest
+uv run python3 eval/author.py
+uv run python3 eval/run.py
 ```
 
-Two design choices worth naming:
+The evaluation framework measures **recall, MRR, coverage, and retrieval differences** across configurations.
 
-- **Recall at a fixed line budget**, not `recall@k`. Line-based chunks are 100 lines and
-  function-level chunks around 20, so a fixed `k` would hand the baseline five times more
-  context and bias the comparison toward the thing being measured against.
-- **The harness refuses to report a config it cannot actually run.** Scoring an unindexed
-  configuration returns nothing and would print `recall=0.000` as though it were a
-  measurement. It now says why instead.
+## Project Structure
 
-## Tests
-
-```bash
-uv run python3 -m pytest          # 114 cases
+```text
+api/          FastAPI API and retrieval
+config/       Embedding and retrieval configuration
+db/           PostgreSQL schema and migrations
+ingester/     Repository ingestion and chunking
+eval/         Retrieval evaluation
+tests/        Test suite
+static/       Frontend
 ```
 
-Includes cross-checks against a **live Postgres** parser, which caught a real bug: the query
-tokenizer split `app.route` into two tokens while Postgres indexes it as one, so a search for
-`@app.route` could never have matched.
+## Status
 
-## Documentation
+Currently runs locally with working:
 
-| File | What it covers |
-|---|---|
-| [PROJECT.md](PROJECT.md) | Complete reference — data model, every route, constraints, known problems |
-| [SPEC.md](SPEC.md) | Plan of record for the retrieval work in progress |
-| [CLAUDE.md](CLAUDE.md) | Working guide for AI coding agents |
+* Repository indexing
+* Semantic retrieval
+* File browsing
+* Citation-grounded answers
+* Evaluation framework
 
-## Deployment
+AST chunking, reranking, query expansion, and retrieval abstention are in progress.
 
-[zerops.yml](zerops.yml) defines the two-service deployment (Python app + static frontend)
-that this project originally ran on. **It is currently inactive** — the account credits
-expired — so the project runs locally.
+## License
 
-The configuration is kept because it solves a genuinely awkward problem: `pgvector` needs
-superuser privileges to install, which the application's own database user does not have.
-Zerops exposes superuser credentials as injected environment variables during init, letting
-[db/setup_extension.py](db/setup_extension.py) create the extension without manual
-intervention. Missing superuser variables is a soft skip, not an error.
-
-When the frontend is served by the static service rather than FastAPI, set `window.API_BASE`
-to the API host; [static/app.js](static/app.js) defaults it to same-origin.
+Add your chosen license before publishing the repository.
